@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nof1-style Live Benchmark</title>
+  <meta name="description" content="一个可直接部署的 Nof1 风格 AI 交易基准展示页（前端静态站点，含模拟实时数据）。" />
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg-grid"></div>
+
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a class="brand" href="#top" aria-label="Home">
+        <span class="brand-mark" aria-hidden="true">N</span>
+        <span class="brand-text">of1</span>
+        <span class="brand-sub">Alpha Arena</span>
+      </a>
+
+      <nav class="nav" aria-label="Primary">
+        <a href="#live">LIVE</a>
+        <a href="#leaderboard">LEADERBOARD</a>
+        <a href="#models">MODELS</a>
+        <a href="#about">ABOUT</a>
+      </nav>
+
+      <div class="topbar-actions">
+        <button id="themeBtn" class="btn btn-ghost" type="button" aria-label="Toggle theme">Theme</button>
+        <a class="btn btn-primary" href="#cta">Request Access</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="container hero-inner">
+        <div class="hero-left">
+          <div class="pill">
+            <span class="dot-live" aria-hidden="true"></span>
+            <span>Live benchmark · simulated feed</span>
+          </div>
+
+          <h1>AI trading, evaluated<br/>in market conditions.</h1>
+          <p class="lead">
+            一个“类 nof1.ai”的展示页：实时曲线 + 账户榜单 + 模型日志。
+            本项目<strong>不接入真实交易</strong>，只用前端随机游走模拟数据，方便你替换成自己的后端。
+          </p>
+
+          <div class="hero-cta">
+            <a class="btn btn-primary" href="#live">View Live</a>
+            <a class="btn btn-ghost" href="#about">How it works</a>
+          </div>
+
+          <div class="hero-metrics" aria-label="Key metrics">
+            <div class="metric">
+              <div class="k">Season</div>
+              <div class="v" id="seasonLabel">S1</div>
+            </div>
+            <div class="metric">
+              <div class="k">Participants</div>
+              <div class="v" id="participantsLabel">6</div>
+            </div>
+            <div class="metric">
+              <div class="k">Update</div>
+              <div class="v" id="updateLabel">2s</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-right">
+          <div class="card hero-card">
+            <div class="card-hd">
+              <div class="title">Total Account Value</div>
+              <div class="sub" id="tsLabel">—</div>
+            </div>
+            <div class="card-bd">
+              <canvas id="heroSpark" height="110"></canvas>
+              <div class="legend" id="miniLegend"></div>
+            </div>
+          </div>
+
+          <div class="card hero-card2">
+            <div class="card-hd">
+              <div class="title">Risk Posture</div>
+              <div class="sub">Exposure · drawdown · turnover</div>
+            </div>
+            <div class="card-bd">
+              <div class="risk-grid" id="riskGrid"></div>
+              <div class="note">
+                指标仅用于 UI 示例：你可以对接 Prometheus / OpenTelemetry 后替换为真实风控指标。
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="live" class="section">
+      <div class="container">
+        <div class="section-hd">
+          <h2>Live</h2>
+          <div class="section-actions">
+            <div class="seg" role="tablist" aria-label="Time range">
+              <button class="seg-btn is-active" data-range="1h" role="tab" aria-selected="true">1H</button>
+              <button class="seg-btn" data-range="6h" role="tab" aria-selected="false">6H</button>
+              <button class="seg-btn" data-range="24h" role="tab" aria-selected="false">24H</button>
+            </div>
+            <button id="pauseBtn" class="btn btn-ghost" type="button">Pause</button>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-hd">
+              <div>
+                <div class="title">Account Value (USD)</div>
+                <div class="sub">All series share the same starting capital · simulated market</div>
+              </div>
+              <div class="chip" id="liveStatusChip">LIVE</div>
+            </div>
+            <div class="card-bd">
+              <canvas id="mainChart" height="260"></canvas>
+              <div class="chart-foot">
+                <div class="muted">Tip: 点击 legend 隐藏/显示曲线。</div>
+                <div class="muted" id="lastTick">Last tick: —</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-hd">
+              <div class="title">A better benchmark</div>
+              <div class="sub">Not just “predict the next candle”. Evaluate behavior under constraints.</div>
+            </div>
+            <div class="card-bd prose">
+              <p>
+                这个页面用“观赛式”信息架构展示一个交易基准：左侧是总资产曲线，右侧是基准说明与参与者列表。
+                这类布局在 nof1.ai 的公开截图中也很常见：曲线区域 + 说明文区并列呈现。 
+              </p>
+              <ul>
+                <li><strong>统一输入</strong>：相同初始资金与数据频率。</li>
+                <li><strong>统一约束</strong>：持仓上限、最大回撤、换手率预算。</li>
+                <li><strong>可复现</strong>：每一次“决策快照”都可追溯。</li>
+              </ul>
+              <p class="muted">
+                你可以把 app.js 里的 <code>tick()</code> 替换成 WebSocket / SSE 拉取真实数据，即可变成真正的“直播榜单”。
+              </p>
+              <div class="mini-list" id="contestants"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section id="leaderboard" class="section">
+      <div class="container">
+        <div class="section-hd">
+          <h2>Leaderboard</h2>
+          <div class="section-actions">
+            <label class="field">
+              <span>Sort</span>
+              <select id="sortSel">
+                <option value="value">Account Value</option>
+                <option value="pnl">P&L %</option>
+                <option value="dd">Drawdown</option>
+                <option value="turnover">Turnover</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Filter</span>
+              <input id="filterInp" type="search" placeholder="Search model…" />
+            </label>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-bd">
+            <div class="table-wrap">
+              <table class="table" aria-label="Leaderboard table">
+                <thead>
+                  <tr>
+                    <th>Model</th>
+                    <th class="r">Account Value</th>
+                    <th class="r">P&L</th>
+                    <th>Style</th>
+                    <th class="r">Drawdown</th>
+                    <th class="r">Turnover</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="lbBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card-ft">
+            <span class="muted">Data: front-end simulation · refresh every 2s</span>
+            <span class="muted">Starting capital: <span id="startCapLabel">$10,000</span></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="models" class="section">
+      <div class="container">
+        <div class="section-hd">
+          <h2>Models</h2>
+          <div class="section-actions">
+            <label class="field">
+              <span>Model</span>
+              <select id="modelSel"></select>
+            </label>
+            <button id="newNoteBtn" class="btn btn-ghost" type="button">Add note</button>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-hd">
+              <div class="title">Decision feed</div>
+              <div class="sub">A compact “inner log” stream (no chain-of-thought)</div>
+            </div>
+            <div class="card-bd">
+              <div id="feed" class="feed" role="log" aria-live="polite"></div>
+            </div>
+            <div class="card-ft">
+              <span class="muted">Replace with your own execution logs (orders, fills, risk rejects).</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-hd">
+              <div class="title">Positions snapshot</div>
+              <div class="sub">Open positions · leverage · stops</div>
+            </div>
+            <div class="card-bd">
+              <div id="posGrid" class="pos-grid"></div>
+            </div>
+            <div class="card-ft">
+              <span class="muted">UI only. Plug in real positions from your OMS.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="about" class="section">
+      <div class="container">
+        <div class="section-hd">
+          <h2>About</h2>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-hd">
+              <div class="title">What you get</div>
+              <div class="sub">A deployable static site</div>
+            </div>
+            <div class="card-bd prose">
+              <ul>
+                <li>纯前端（HTML/CSS/JS），无需构建步骤。</li>
+                <li>Chart.js 通过 CDN 引入，开箱即用。</li>
+                <li>数据层使用可替换的 <code>dataAdapter</code>，支持 REST / SSE / WebSocket。</li>
+                <li>默认暗色美学：高对比、细边框、密排信息。</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="card" id="cta">
+            <div class="card-hd">
+              <div class="title">Deploy</div>
+              <div class="sub">Netlify / Vercel / GitHub Pages</div>
+            </div>
+            <div class="card-bd prose">
+              <p>把整个文件夹当作静态站点发布即可：</p>
+              <ol>
+                <li>本地预览：<code>npx serve</code> 或任意静态服务器。</li>
+                <li>GitHub Pages：把文件放到仓库根目录或 <code>/docs</code>。</li>
+                <li>Vercel：选择 “Other / Static”，无需构建命令。</li>
+              </ol>
+              <p class="muted">详细步骤见 README.md。</p>
+            </div>
+          </div>
+        </div>
+
+        <footer class="footer">
+          <div class="container footer-inner">
+            <div class="muted">
+              Demo UI for benchmarking dashboards. Not investment advice. No real trading.
+            </div>
+            <div class="muted">
+              © <span id="year"></span> Nof1-style clone
+            </div>
+          </div>
+        </footer>
+
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha256-CI6lQ2lfFQ8+Y9SYOoJsn+gvlpmZ9DfxmLJ2Qq2A2m8=" crossorigin="anonymous"></script>
+  <script src="app.js"></script>
+</body>
+</html>
